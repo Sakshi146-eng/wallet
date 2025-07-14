@@ -1,0 +1,21 @@
+# Web framework
+fastapi
+uvicorn[standard]
+
+langchain
+groq
+
+
+redis
+psycopg2-binary        
+sqlalchemy             
+asyncpg                
+pydantic
+
+aiohttp
+
+
+loguru
+
+mypy
+black
