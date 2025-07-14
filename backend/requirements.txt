@@ -2,9 +2,13 @@
 fastapi
 uvicorn[standard]
 
-langchain
-groq
+langchain==0.2.1
+langchain-community==0.2.1
+langchain-core==0.2.2
 
+
+
+langchain-groq
 
 redis
 psycopg2-binary        
