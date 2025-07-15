@@ -2,3 +2,4 @@ venv
 .env
 command
 __pycache__/
+*.pyc
