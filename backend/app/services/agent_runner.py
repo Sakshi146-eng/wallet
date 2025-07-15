@@ -3,8 +3,6 @@ import aiohttp
 from app.config import get_env
 from langchain_core.messages import AIMessage 
 
-from app.services.wallet_utils import get_eth_balance
-
 groq_api_key = get_env("GROQ_API_KEY")
 
 llm = ChatGroq(
@@ -70,3 +68,4 @@ async def run_agent(user_prompt: str, wallet_address: str) -> str:
     except Exception as e:
         print(f"[AGENT ERROR] {e}")
         return "Agent failed internally."
+

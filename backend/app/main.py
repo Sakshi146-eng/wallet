@@ -18,6 +18,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+app.include_router(wallet.router)
 app.include_router(wallet.router, prefix="/wallet", tags=["Wallet"])
 app.include_router(agent.router, prefix="/agent", tags=["AI Agent"])
 app.include_router(tx.router, prefix="/transaction", tags=["Transaction"])
@@ -25,4 +27,5 @@ app.include_router(tx.router, prefix="/transaction", tags=["Transaction"])
 @app.get("/")
 def root():
     return {"status": "Backend running", "message": "Crypto Wallet Assistant API"}
+
 
