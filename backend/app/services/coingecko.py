@@ -2,7 +2,7 @@ import aiohttp
 
 COINGECKO_API_URL = "https://api.coingecko.com/api/v3/simple/price"
 
-# Map your token symbols to CoinGecko IDs
+# Mapping the   token symbols to CoinGecko IDs
 TOKEN_ID_MAP = {
     "ETH": "ethereum",
     "USDC": "usd-coin",

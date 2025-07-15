@@ -27,36 +27,45 @@ Only respond with actionable DeFi advice based on market logic.
 
 
 #these are the function for agent response
-from app.services.wallet_utils import get_eth_balance, get_all_token_balances
+from app.services.wallet_utils import get_eth_balance,get_all_token_balances,get_erc20_balance
+from app.services.coingecko import fetch_token_prices
+from app.services.logger import log_agent_interaction
 
 async def run_agent(user_prompt: str, wallet_address: str) -> str:
     try:
         async with aiohttp.ClientSession() as session:
-            #Fetch live ETH + ERC-20 token balances
             eth_balance = await get_eth_balance(wallet_address, session)
-            token_balances = await get_all_token_balances(wallet_address, session)
+            token_balances = {
+                "USDC": await get_erc20_balance(
+                    address=wallet_address,
+                    contract_address="0xA0b8...48", decimals=6, session=session
+                ),
+                "LINK": await get_erc20_balance(
+                    address=wallet_address,
+                    contract_address="0x5149...ca", decimals=18, session=session
+                )
+            }
 
-        #we convert the balance fetched from wallet to readable format
-        token_summary = "\n".join(
-            [f"- {symbol}: {amount:.2f}" for symbol, amount in token_balances.items()]
-        ) or "None"
+            final_prompt = prompt_template.format(
+                wallet_address=wallet_address,
+                user_prompt=user_prompt,
+                eth_balance=eth_balance,
+                token_balances="\n".join([f"{k}: {v:.2f}" for k, v in token_balances.items()])
+            )
 
-        # Inject real-time data into the prompt
-        final_prompt = prompt_template.format(
-            wallet_address=wallet_address,
-            user_prompt=user_prompt,
-            eth_balance=eth_balance,
-            token_balances=token_summary
-        )
+            result = llm.invoke(final_prompt)
+            response_text = result.content if hasattr(result, "content") else str(result)
 
-        print(f"[Agent Prompt]\n{final_prompt}")
+            # Log to MongoDB
+            await log_agent_interaction({
+                "wallet_address": wallet_address,
+                "user_prompt": user_prompt,
+                "agent_response": response_text,
+                "eth_balance": eth_balance,
+                "usd_values": await fetch_token_prices(["ETH", "USDC", "LINK"]),
+            })
 
-        result = llm.invoke(final_prompt)
-
-        # Return clean output
-        if isinstance(result, AIMessage):
-            return result.content
-        return str(result)
+            return response_text
 
     except Exception as e:
         print(f"[AGENT ERROR] {e}")
