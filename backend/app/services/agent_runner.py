@@ -10,7 +10,7 @@ llm = ChatGroq(
     model="llama3-70b-8192"  
 )
 
-prompt_template = """You are a crypto co-agent. You analyze wallet {wallet_address} activity and answer the user's request below.
+prompt_template = """Your name is Walli-a crypto co-agent. You analyze wallet {wallet_address} activity and answer the user's request below.
 
 User Input:
 {user_prompt}
