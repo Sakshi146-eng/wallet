@@ -20,7 +20,17 @@ async def ask_agent(req: AgentQueryRequest):
         reply = await run_agent(req.prompt, req.wallet_address)
 
         if reply:
-            return {"response": reply}
+            return {"response": {"content": reply, "source": "live"}}
+
+        
+        if reply is None:
+            return {
+            "response": {
+                "error": "Could not process your prompt",
+                "source": "fallback",
+                "advice": "Try again later or check your internet connection."
+            }
+        }
 
     except Exception as e:
         print("[LLM Error]", e)

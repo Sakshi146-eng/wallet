@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Dict, Optional,Union
+from typing import Dict, Optional,Union,Any
 
 
 class WalletInfoResponse(BaseModel):
@@ -7,9 +7,9 @@ class WalletInfoResponse(BaseModel):
     balances: Dict[str, float]
     network: str
 
-
 class AgentResponse(BaseModel):
-    response: Union[str, Dict]
+    response: Union[str, Dict[str, Any]]  #to make sure we return live when in online and actual llm response is added later i can use langchain or ollama for locally processing the user prompts
+
 
 
 class TxAction(BaseModel):
