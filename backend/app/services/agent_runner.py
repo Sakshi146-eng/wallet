@@ -30,8 +30,10 @@ from app.services.coingecko import fetch_token_prices
 from app.services.logger import log_agent_interaction
 
 async def run_agent(user_prompt: str, wallet_address: str) -> str:
+    print("agent is called")
     try:
         async with aiohttp.ClientSession() as session:
+            print("fetching the balance")
             eth_balance = await get_eth_balance(wallet_address, session)
             token_balances = {
                 "USDC": await get_erc20_balance(
@@ -51,10 +53,12 @@ async def run_agent(user_prompt: str, wallet_address: str) -> str:
                 token_balances="\n".join([f"{k}: {v:.2f}" for k, v in token_balances.items()])
             )
 
-            result = llm.invoke(final_prompt)
+            print("Sending prompt to Groq...")
+            result = await llm.ainvoke(final_prompt)
+            print("Groq response: ", result)
+
             response_text = result.content if hasattr(result, "content") else str(result)
 
-            # Log to MongoDB
             await log_agent_interaction({
                 "wallet_address": wallet_address,
                 "user_prompt": user_prompt,
@@ -67,5 +71,8 @@ async def run_agent(user_prompt: str, wallet_address: str) -> str:
 
     except Exception as e:
         print(f"[AGENT ERROR] {e}")
-        return "Agent failed internally."
+        return None
+
+
+    
 

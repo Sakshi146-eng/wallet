@@ -12,11 +12,31 @@ from langchain_core.messages import AIMessage
 
 router = APIRouter()
 
+from app.services.fallback_parser import fallback_parse  #import fallback 
 
 @router.post("/ask", response_model=AgentResponse)
 async def ask_agent(req: AgentQueryRequest):
-    reply = await run_agent(req.prompt, req.wallet_address)
-    return {"response": reply}
+    try:
+        reply = await run_agent(req.prompt, req.wallet_address)
+
+        if reply:
+            return {"response": reply}
+
+    except Exception as e:
+        print("[LLM Error]", e)
+
+    #Fallback response
+    fallback = fallback_parse(req.prompt)
+    if fallback:
+        return {
+            "response": {
+                "source": "fallback",
+                "data": fallback
+            }
+        }
+
+    return {"response": {"error": "Could not process your prompt"}}
+
 
 
 

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Dict, Optional
+from typing import Dict, Optional,Union
 
 
 class WalletInfoResponse(BaseModel):
@@ -9,7 +9,7 @@ class WalletInfoResponse(BaseModel):
 
 
 class AgentResponse(BaseModel):
-    response: str
+    response: Union[str, Dict]
 
 
 class TxAction(BaseModel):
