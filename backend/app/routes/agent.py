@@ -7,7 +7,6 @@ from fastapi import Query
 from app.db.mongo import agent_logs
 
 from app.services.agent_runner import llm
-from datetime import datetime
 from langchain_core.messages import AIMessage
 
 router = APIRouter()
@@ -135,57 +134,3 @@ def parse_strategies(response: str):
                 })
     return strategies
 
-@router.post("/rebalance")
-async def generate_rebalance(data: AgentQueryRequest):
-    w_address = data.wallet_address
-    user_prompt = data.prompt
-
-    try:
-        async with aiohttp.ClientSession() as session:
-            eth = await get_eth_balance(w_address, session)
-            usdc = await get_erc20_balance(address=w_address,contract_address="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",decimals=6, session=session )
-            link = await get_erc20_balance(address=w_address,contract_address="0x514910771af9ca656af840dff83e8264ecf986ca", decimals=18, session=session)
-
-        
-        balances = {
-            "ETH": eth,
-            "USDC": usdc,
-            "LINK": link
-        }
-
-        
-        prices = await fetch_token_prices(list(balances.keys())) #returns prices in Us SDdollars
-
-        
-        usd_value = {
-            symbol: round(balances[symbol] * prices.get(symbol, 0.0), 2)
-            for symbol in balances
-        }
-
-        total_usd = round(sum(usd_value.values()), 2)
-
-        
-        prompt = build_prompt(
-            eth, usd_value["ETH"],
-            usdc, usd_value["USDC"],
-            link, usd_value["LINK"],
-            total_usd, user_prompt
-        )
-
-        print(f"\n[AGENT BALANCER PROMPT]\n{prompt}")
-
-        
-        response = llm.invoke(prompt)
-        raw = response.content if hasattr(response, "content") else str(response)
-        strategies = parse_strategies(raw)
-
-        return {
-            "balances": balances,
-            "usd_value": usd_value,
-            "strategies": strategies,
-            "raw_agent_response": raw
-        }
-
-    except Exception as e:
-        print(f"[ERROR] {e}")
-        return {"error": str(e)}
