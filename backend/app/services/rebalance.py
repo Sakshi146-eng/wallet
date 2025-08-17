@@ -41,8 +41,10 @@ async def generate_rebalance(data: AgentQueryRequest):
         prompt = build_prompt(eth, usd_values["ETH"], usdc, usd_values["USDC"], link, usd_values["LINK"], total, user_prompt)
         llm_output = llm.invoke(prompt)
         raw_text = llm_output.content if hasattr(llm_output, "content") else str(llm_output)
+        print("RAW_TEXT:",raw_text)
         strategies = parse_strategies(raw_text)
         strategies = attach_ids(strategies)
+        print("STRATEGIES:",strategies)
 
         print("[INFO] Returning generated strategies.")
         return {

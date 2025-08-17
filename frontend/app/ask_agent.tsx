@@ -12,7 +12,7 @@ import {
   Animated,
   Platform,
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -31,17 +31,22 @@ const isMobile = width <= 480;
 
 export default function AskAgent() {
   const { address } = useLocalSearchParams();
+  const router = useRouter();
   const [question, setQuestion] = useState('');
   const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [rebalanceMode, setRebalanceMode] = useState(false);
+  const [showStrategiesButton, setShowStrategiesButton] = useState(false);
+  const [strategiesData, setStrategiesData] = useState(null);
   
   // Animation values with platform-specific native driver
   const useNativeDriver = Platform.OS !== 'web';
   const splineOpacity = useRef(new Animated.Value(1)).current;
   const splineScale = useRef(new Animated.Value(1)).current;
+  const rebalanceIconScale = useRef(new Animated.Value(1)).current;
 
-  // ✅ SIMPLIFIED: Spline visibility based only on response existence
+  // Simplified: Spline visibility based only on response existence
   const shouldShowSpline = !response;
 
   // Enhanced content extraction for nested structure including error handling
@@ -127,7 +132,38 @@ export default function AskAgent() {
     ]).start();
   };
 
-  // ✅ SIMPLE: Clear response when user types new question
+  // Animate rebalance icon
+  const animateRebalanceIcon = () => {
+    Animated.sequence([
+      Animated.timing(rebalanceIconScale, {
+        toValue: 0.8,
+        duration: 100,
+        useNativeDriver,
+      }),
+      Animated.spring(rebalanceIconScale, {
+        toValue: 1,
+        tension: 100,
+        friction: 3,
+        useNativeDriver,
+      }),
+    ]).start();
+  };
+
+  // Toggle rebalance mode
+  const toggleRebalanceMode = () => {
+    animateRebalanceIcon();
+    setRebalanceMode(!rebalanceMode);
+    setShowStrategiesButton(false);
+    setStrategiesData(null);
+    
+    // Clear response when switching modes
+    if (response) {
+      setResponse('');
+      setError('');
+    }
+  };
+
+  // Clear response when user types new question
   const handleQuestionChange = (text) => {
     setQuestion(text);
     
@@ -135,6 +171,8 @@ export default function AskAgent() {
     if (response && text.trim() !== '') {
       setResponse('');
       setError('');
+      setShowStrategiesButton(false);
+      setStrategiesData(null);
     }
   };
 
@@ -151,6 +189,8 @@ export default function AskAgent() {
 
     setLoading(true);
     setError('');
+    setShowStrategiesButton(false);
+    setStrategiesData(null);
 
     try {
       const requestBody = {
@@ -160,7 +200,9 @@ export default function AskAgent() {
 
       console.log('Sending request:', requestBody);
 
-      const result = await fetch('http://localhost:8000/agent/ask', {
+      // Choose endpoint based on rebalance mode
+      const endpoint = rebalanceMode ? '/agent/rebalance' : '/agent/ask';
+      const result = await fetch(`http://localhost:8000${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -193,14 +235,39 @@ export default function AskAgent() {
       const data = await result.json();
       console.log('Raw response data:', JSON.stringify(data, null, 2));
       
-      const textContent = extractTextContent(data);
-      console.log('Extracted text content:', textContent);
-      
-      if (typeof textContent === 'string') {
-        // Set response (this will hide the Spline)
-        setResponse(textContent);
+      if (rebalanceMode && data.strategies) {
+        // Handle rebalance response with strategies
+        setStrategiesData(data.strategies);
+        setShowStrategiesButton(true);
+        
+        // Generate a meaningful response based on the strategies data
+        const strategiesCount = data.strategies.length;
+        const totalValue = data.total_usd_value || 0;
+        
+        let responseText = `🎯 **Portfolio Analysis Complete**\n\n`;
+        responseText += `I've analyzed your wallet and prepared **${strategiesCount} customized rebalancing strategies** for long-term passive income.\n\n`;
+        
+        if (totalValue > 0) {
+          responseText += `📊 Current Portfolio Value: ${totalValue.toLocaleString()}\n\n`;
+        }
+        
+        responseText += `Each strategy offers different risk-reward profiles:\n`;
+        responseText += `• **Conservative**: Higher stablecoin allocation for stability\n`;
+        responseText += `• **Balanced**: Mixed allocation for steady growth\n`;
+        responseText += `• **Growth-Oriented**: Higher crypto allocation for maximum returns\n\n`;
+        responseText += `💡 Tap "Show Portfolio Strategies" below to explore detailed allocations and choose your preferred strategy.`;
+        
+        setResponse(responseText);
       } else {
-        setResponse('Error: Could not extract text content from response');
+        // Handle normal response
+        const textContent = extractTextContent(data);
+        console.log('Extracted text content:', textContent);
+        
+        if (typeof textContent === 'string') {
+          setResponse(textContent);
+        } else {
+          setResponse('Error: Could not extract text content from response');
+        }
       }
       
     } catch (error) {
@@ -213,11 +280,26 @@ export default function AskAgent() {
     }
   };
 
+  const showPortfolioStrategies = () => {
+    if (strategiesData && address) {
+      router.push({
+        pathname: '/choose_strategy',
+        params: {
+          strategies: JSON.stringify(strategiesData),
+          wallet_address: address,
+        },
+      });
+    } else {
+      Alert.alert('Error', 'No strategies data available');
+    }
+  };
+
   const askPredefinedQuestion = (predefinedPrompt) => {
     setQuestion(predefinedPrompt);
-    // Clear any existing response
     setResponse('');
     setError('');
+    setShowStrategiesButton(false);
+    setStrategiesData(null);
   };
 
   const startNewQuestion = () => {
@@ -225,6 +307,8 @@ export default function AskAgent() {
     setResponse('');
     setError('');
     setLoading(false);
+    setShowStrategiesButton(false);
+    setStrategiesData(null);
   };
 
   // Enhanced Platform-specific Spline component
@@ -348,17 +432,40 @@ export default function AskAgent() {
             </ScrollView>
           </View>
 
-          {/* Question Input */}
+          {/* Enhanced Question Input with Rebalance Icon */}
           <BlurView intensity={20} style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Ask about your crypto portfolio..."
-              placeholderTextColor="#888"
-              value={question}
-              onChangeText={handleQuestionChange}
-              multiline
-              numberOfLines={4}
-            />
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                placeholder={rebalanceMode ? "Ask for portfolio rebalancing advice..." : "Ask about your crypto portfolio..."}
+                placeholderTextColor="#888"
+                value={question}
+                onChangeText={handleQuestionChange}
+                multiline
+                numberOfLines={4}
+              />
+              <Animated.View style={{ transform: [{ scale: rebalanceIconScale }] }}>
+                <TouchableOpacity
+                  style={[
+                    styles.rebalanceIcon,
+                    rebalanceMode && styles.rebalanceIconActive
+                  ]}
+                  onPress={toggleRebalanceMode}
+                >
+                  <Ionicons 
+                    name="refresh" 
+                    size={20} 
+                    color={rebalanceMode ? '#fff' : '#bb86fc'} 
+                  />
+                </TouchableOpacity>
+              </Animated.View>
+            </View>
+            {rebalanceMode && (
+              <View style={styles.modeIndicator}>
+                <View style={styles.modeIndicatorDot} />
+                <Text style={styles.modeIndicatorText}>Rebalance Mode Active</Text>
+              </View>
+            )}
           </BlurView>
 
           {/* Ask Button */}
@@ -368,24 +475,28 @@ export default function AskAgent() {
             disabled={loading}
           >
             <LinearGradient
-              colors={loading ? ['#555', '#666'] : ['#bb86fc', '#9c6ff5']}
+              colors={loading ? ['#555', '#666'] : rebalanceMode ? ['#4CAF50', '#45a049'] : ['#bb86fc', '#9c6ff5']}
               style={styles.buttonGradient}
             >
               {loading ? (
                 <>
                   <ActivityIndicator color="white" size="small" />
-                  <Text style={styles.buttonText}>AI is thinking...</Text>
+                  <Text style={styles.buttonText}>
+                    {rebalanceMode ? 'Analyzing Portfolio...' : 'AI is thinking...'}
+                  </Text>
                 </>
               ) : (
                 <>
-                  <Text style={styles.buttonText}>Ask Agent</Text>
+                  <Text style={styles.buttonText}>
+                    {rebalanceMode ? 'Get Strategies' : 'Ask Agent'}
+                  </Text>
                   <Ionicons name="send" size={20} color="white" />
                 </>
               )}
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* ✅ FIXED: Simplified Spline visibility condition */}
+          {/* Simplified Spline visibility condition */}
           {shouldShowSpline && (
             <Animated.View
               style={[
@@ -404,14 +515,19 @@ export default function AskAgent() {
                   isWideScreen && styles.splineWrapperWide
                 ]}>
                   <Text style={styles.splineTitle}>
-                    {loading ? "AI Agent Thinking..." : "AI Agent Ready"}
+                    {loading 
+                      ? (rebalanceMode ? "AI Agent Analyzing Portfolio..." : "AI Agent Thinking...") 
+                      : (rebalanceMode ? "AI Portfolio Advisor Ready" : "AI Agent Ready")
+                    }
                   </Text>
                   
                   {/* Loading overlay when processing */}
                   {loading && (
                     <View style={styles.loadingOverlay}>
                       <ActivityIndicator color="#bb86fc" size="large" />
-                      <Text style={styles.loadingOverlayText}>Processing your question...</Text>
+                      <Text style={styles.loadingOverlayText}>
+                        {rebalanceMode ? 'Preparing rebalance strategies...' : 'Processing your question...'}
+                      </Text>
                     </View>
                   )}
                   
@@ -440,15 +556,21 @@ export default function AskAgent() {
             <BlurView intensity={15} style={styles.responseContainer}>
               <View style={styles.responseHeader}>
                 <Ionicons 
-                  name={response.startsWith('⚠️') ? "warning" : "chatbubble-ellipses"} 
+                  name={response.startsWith('⚠️') ? "warning" : rebalanceMode ? "analytics" : "chatbubble-ellipses"} 
                   size={20} 
-                  color={response.startsWith('⚠️') ? "#ff6b6b" : "#bb86fc"} 
+                  color={response.startsWith('⚠️') ? "#ff6b6b" : rebalanceMode ? "#4CAF50" : "#bb86fc"} 
                 />
                 <Text style={[
                   styles.responseTitle, 
-                  response.startsWith('⚠️') && { color: '#ff6b6b' }
+                  response.startsWith('⚠️') && { color: '#ff6b6b' },
+                  rebalanceMode && { color: '#4CAF50' }
                 ]}>
-                  {response.startsWith('⚠️') ? 'AI Agent - Error' : 'AI Response'}
+                  {response.startsWith('⚠️') 
+                    ? 'AI Agent - Error' 
+                    : rebalanceMode 
+                      ? 'Portfolio Analysis' 
+                      : 'AI Response'
+                  }
                 </Text>
                 <TouchableOpacity 
                   style={styles.newQuestionButton}
@@ -466,6 +588,23 @@ export default function AskAgent() {
                   {response}
                 </Text>
               </ScrollView>
+              
+              {/* Show Portfolio Strategies Button */}
+              {showStrategiesButton && strategiesData && (
+                <TouchableOpacity
+                  style={styles.strategiesButton}
+                  onPress={showPortfolioStrategies}
+                >
+                  <LinearGradient
+                    colors={['#4CAF50', '#45a049']}
+                    style={styles.strategiesButtonGradient}
+                  >
+                    <Ionicons name="bar-chart" size={20} color="white" />
+                    <Text style={styles.strategiesButtonText}>Show Portfolio Strategies</Text>
+                    <Ionicons name="arrow-forward" size={16} color="white" />
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
             </BlurView>
           ) : null}
         </ScrollView>
@@ -532,12 +671,55 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(187, 134, 252, 0.3)',
     overflow: 'hidden',
   },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
   input: {
+    flex: 1,
     padding: 16,
     fontSize: 16,
     color: '#fff',
     minHeight: 100,
     textAlignVertical: 'top',
+  },
+  rebalanceIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(187, 134, 252, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    margin: 16,
+    borderWidth: 2,
+    borderColor: 'rgba(187, 134, 252, 0.3)',
+  },
+  rebalanceIconActive: {
+    backgroundColor: '#bb86fc',
+    borderColor: '#bb86fc',
+    shadowColor: '#bb86fc',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  modeIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    gap: 8,
+  },
+  modeIndicatorDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4CAF50',
+  },
+  modeIndicatorText: {
+    color: '#4CAF50',
+    fontSize: 12,
+    fontWeight: '600',
   },
   askButton: {
     borderRadius: 12,
@@ -695,7 +877,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(187, 134, 252, 0.2)',
     overflow: 'hidden',
-    maxHeight: 400,
+    maxHeight: 500,
   },
   responseHeader: {
     flexDirection: 'row',
@@ -730,5 +912,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#dcdcdc',
     lineHeight: 24,
+  },
+  
+  // Portfolio Strategies Button
+  strategiesButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginTop: 16,
+  },
+  strategiesButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  strategiesButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
