@@ -110,18 +110,22 @@ async def execute_rebalance_transaction(
         transaction = {
             'to': account.address,  # Send to self for simulation
             'value': w3.to_wei(0.001, 'ether'),  # Minimal ETH amount
-            'gas': 21000 + len(data_hex) * 16,  # Base gas + data gas
             'gasPrice': gas_price,
             'nonce': nonce,
             'data': data_hex,
             'chainId': CHAIN_ID
         }
+        estimated_gas = w3.eth.estimate_gas(transaction)
+        print(f"Estimated gas: {estimated_gas}")
+
+        # Add buffer (e.g. +20%)
+        transaction['gas'] = int(estimated_gas * 1.2)
         
         # Sign transaction
         signed_txn = w3.eth.account.sign_transaction(transaction, PRIVATE_KEY)
         
         # Send transaction
-        tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
         tx_hash_hex = tx_hash.hex()
         
         print(f"[SUCCESS] Rebalance transaction sent: {tx_hash_hex}")
