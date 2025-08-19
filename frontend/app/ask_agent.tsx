@@ -312,7 +312,7 @@ export default function AskAgent() {
   };
 
   // Enhanced Platform-specific Spline component
-  const SplineComponent = () => {
+  const SplineComponent =React.useMemo( () => {
     if (Platform.OS === 'web') {
       return (
         <View style={[
@@ -388,7 +388,7 @@ export default function AskAgent() {
         </View>
       );
     }
-  };
+  },[]);
 
   return (
     <View style={styles.container}>
@@ -531,7 +531,7 @@ export default function AskAgent() {
                     </View>
                   )}
                   
-                  <SplineComponent />
+                  {SplineComponent}
                 </View>
               </BlurView>
             </Animated.View>
