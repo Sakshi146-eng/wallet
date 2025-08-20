@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes import wallet, agent, tx
 from app.services.rebalance import router as rebalance_router
-
+from app.routes.execution import router as execution_router
 
 app = FastAPI(
     title="AI Crypto Wallet Assistant",
@@ -21,6 +21,8 @@ app.add_middleware(
 )
 
 
+
+app.include_router(execution_router, tags=["Execution"])
 app.include_router(wallet.router, prefix="/wallet", tags=["Wallet"])
 app.include_router(agent.router, prefix="/agent", tags=["AI Agent"])
 app.include_router(tx.router, prefix="/transaction", tags=["Transaction"])
