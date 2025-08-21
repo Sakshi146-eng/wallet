@@ -8,7 +8,9 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Linking
+  Linking,
+  Modal,
+  TextInput
 } from 'react-native';
 import { PieChart, BarChart, LineChart } from 'react-native-chart-kit';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -32,7 +34,10 @@ export default function ChartScreen() {
   
   const router = useRouter();
   const [executing, setExecuting] = useState(false);
-  const [executionResult, setExecutionResult] = useState<any>(null);
+  const [executionResult, setExecutionResult] = useState(null);
+  const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
+  const [confirmationText, setConfirmationText] = useState('');
+  const [confirmationError, setConfirmationError] = useState('');
 
   // Debug logging on component mount
   useEffect(() => {
@@ -65,7 +70,7 @@ export default function ChartScreen() {
 
   // Parse applied_strategy if it's a JSON string
   let parsedStrategy = {};
-   try {
+  try {
     parsedStrategy = typeof applied_strategy === 'string' 
       ? JSON.parse(applied_strategy) 
       : applied_strategy || {};
@@ -81,7 +86,10 @@ export default function ChartScreen() {
   const returnValue = parseFloat(expected_return?.toString() || '12');
   const sharpeValue = parseFloat(sharpe_ratio?.toString() || '1.4');
 
-  const strategyName = strategy_label?.toString() || 'Current Strategy';
+  // Get the strategy name for confirmation
+  const getStrategyDisplayName = () => {
+    return strategy_label || 'Default Strategy';
+  };
 
   // Generate pie chart data
   const pieData = Object.entries(parsedStrategy).map(([key, value], index) => ({
@@ -104,6 +112,7 @@ export default function ChartScreen() {
     decimalPlaces: 1,
   };
 
+  // Show confirmation modal
   const handleImplementStrategy = async () => {
     console.log('=== Execute Strategy Button Clicked ===');
     console.log('Button clicked at:', new Date().toISOString());
@@ -162,31 +171,36 @@ export default function ChartScreen() {
       return;
     }
 
-    console.log('✅ All validations passed, proceeding with execution...');
-
-    // Show confirmation dialog
-    Alert.alert(
-      '🚀 Execute Strategy?',
-      `You are about to execute the following strategy:\n\n${Object.entries(parsedStrategy).map(([token, percentage]) => `• ${token}: ${percentage}%`).join('\n')}\n\nWallet: ${wallet_address.toString().slice(0, 8)}...${wallet_address.toString().slice(-6)}\nStrategy ID: ${strategy_id}\n\nThis will submit a transaction to Sepolia testnet.`,
-      [
-        { 
-          text: 'Cancel', 
-          style: 'cancel',
-          onPress: () => console.log('User cancelled execution')
-        },
-        { 
-          text: 'Execute', 
-          style: 'default',
-          onPress: () => executeStrategyConfirmed()
-        }
-      ]
-    );
+    console.log('✅ All validations passed, showing confirmation modal...');
+    
+    // Reset confirmation state and show modal
+    setConfirmationText('');
+    setConfirmationError('');
+    setConfirmationModalVisible(true);
   };
 
-  // Execute strategy immediately without confirmation
-const executeStrategy = () => {
-  executeStrategyConfirmed();
-};
+  // Handle confirmation modal submission
+  const handleConfirmationSubmit = () => {
+    const expectedText = getStrategyDisplayName();
+    
+    if (confirmationText.trim() !== expectedText) {
+      setConfirmationError(`Please type exactly: "${expectedText}"`);
+      return;
+    }
+
+    // Confirmation successful, close modal and execute strategy
+    setConfirmationModalVisible(false);
+    setConfirmationText('');
+    setConfirmationError('');
+    executeStrategyConfirmed();
+  };
+
+  // Cancel confirmation modal
+  const handleConfirmationCancel = () => {
+    setConfirmationModalVisible(false);
+    setConfirmationText('');
+    setConfirmationError('');
+  };
 
   const executeStrategyConfirmed = async () => {
     try {
@@ -682,77 +696,110 @@ const executeStrategy = () => {
           </View>
         </ScrollView>
 
-        {/* Confirmation Dialog Modal */}
+        {/* Confirmation Modal */}
         <Modal
-          visible={showConfirmDialog}
+          visible={confirmationModalVisible}
           transparent={true}
           animationType="fade"
-          onRequestClose={handleCancelConfirmation}
+          statusBarTranslucent={true}
         >
           <View style={styles.modalOverlay}>
-            <BlurView intensity={20} style={styles.modalContainer}>
-              <View style={styles.modalContent}>
-                {/* Modal Header */}
+            <BlurView intensity={20} style={styles.modalBlur}>
+              <View style={styles.modalContainer}>
                 <View style={styles.modalHeader}>
-                  <Ionicons name="warning" size={32} color="#FF6B6B" />
-                  <Text style={styles.modalTitle}>Confirm Strategy Implementation</Text>
+                  <Ionicons name="warning" size={32} color="#FF9800" />
+                  <Text style={styles.modalTitle}>Confirm Strategy Execution</Text>
                 </View>
 
-                {/* Modal Body */}
-                <View style={styles.modalBody}>
+                <View style={styles.modalContent}>
                   <Text style={styles.modalDescription}>
-                    You are about to implement this strategy in your live portfolio. This action will:
+                    You are about to execute a portfolio rebalancing strategy that will modify your actual wallet holdings.
                   </Text>
-                  
-                  <View style={styles.warningList}>
-                    <Text style={styles.warningItem}>• Rebalance your current holdings</Text>
-                    <Text style={styles.warningItem}>• Execute trades based on the new allocation</Text>
-                    <Text style={styles.warningItem}>• Apply the selected investment strategy</Text>
+
+                  <View style={styles.strategyPreview}>
+                    <Text style={styles.strategyPreviewTitle}>Strategy Details:</Text>
+                    <Text style={styles.strategyName}>"{getStrategyDisplayName()}"</Text>
+                    <View style={styles.allocationPreview}>
+                      {Object.entries(parsedStrategy).map(([token, percentage]) => (
+                        <Text key={token} style={styles.allocationItem}>
+                          • {token}: {percentage}%
+                        </Text>
+                      ))}
+                    </View>
+                    <Text style={styles.walletPreview}>
+                      Wallet: {wallet_address?.toString().slice(0, 8)}...{wallet_address?.toString().slice(-6)}
+                    </Text>
                   </View>
 
-                  <Text style={styles.confirmationInstruction}>
-                    Please type <Text style={styles.strategyNameHighlight}>"{strategyName}"</Text> to confirm:
-                  </Text>
+                  <View style={styles.confirmationInputSection}>
+                    <Text style={styles.confirmationLabel}>
+                      To confirm, please type the strategy name exactly as shown above:
+                    </Text>
+                    
+                    <TextInput
+                      style={[
+                        styles.confirmationInput,
+                        confirmationError ? styles.confirmationInputError : null
+                      ]}
+                      value={confirmationText}
+                      onChangeText={(text) => {
+                        setConfirmationText(text);
+                        if (confirmationError) {
+                          setConfirmationError('');
+                        }
+                      }}
+                      placeholder={`Type "${getStrategyDisplayName()}" here`}
+                      placeholderTextColor="rgba(220, 220, 220, 0.5)"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
 
-                  <TextInput
-                    style={styles.confirmationInput}
-                    placeholder={`Type "${strategyName}" here...`}
-                    placeholderTextColor="#888"
-                    value={confirmationText}
-                    onChangeText={setConfirmationText}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
+                    {confirmationError ? (
+                      <Text style={styles.confirmationErrorText}>
+                        {confirmationError}
+                      </Text>
+                    ) : null}
+                  </View>
+
+                  <Text style={styles.modalWarning}>
+                    ⚠️ This action cannot be undone. Make sure you understand the risks involved.
+                  </Text>
                 </View>
 
-                {/* Modal Actions */}
                 <View style={styles.modalActions}>
                   <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={handleCancelConfirmation}
+                    style={styles.modalCancelButton}
+                    onPress={handleConfirmationCancel}
                   >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                    <Text style={styles.modalCancelText}>Cancel</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     style={[
-                      styles.confirmButton,
-                      confirmationText.trim() !== strategyName && styles.confirmButtonDisabled
+                      styles.modalConfirmButton,
+                      confirmationText.trim() !== getStrategyDisplayName() && styles.modalConfirmButtonDisabled
                     ]}
-                    onPress={handleConfirmImplementation}
-                    disabled={confirmationText.trim() !== strategyName}
+                    onPress={handleConfirmationSubmit}
+                    disabled={confirmationText.trim() !== getStrategyDisplayName()}
                   >
                     <LinearGradient
                       colors={
-                        confirmationText.trim() === strategyName
-                          ? ['#FF6B6B', '#FF5252']
-                          : ['#666', '#555']
+                        confirmationText.trim() === getStrategyDisplayName()
+                          ? ['#FF5722', '#E64A19']
+                          : ['#9E9E9E', '#757575']
                       }
-                      style={styles.confirmButtonGradient}
+                      style={styles.modalConfirmGradient}
                     >
-                      <Ionicons name="checkmark-circle" size={20} color="white" />
-                      <Text style={styles.confirmButtonText}>
-                        Implement Strategy
+                      <Ionicons 
+                        name="rocket" 
+                        size={16} 
+                        color={confirmationText.trim() === getStrategyDisplayName() ? "white" : "#BDBDBD"} 
+                      />
+                      <Text style={[
+                        styles.modalConfirmText,
+                        confirmationText.trim() !== getStrategyDisplayName() && styles.modalConfirmTextDisabled
+                      ]}>
+                        Execute Strategy
                       </Text>
                     </LinearGradient>
                   </TouchableOpacity>
@@ -1092,5 +1139,173 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
     lineHeight: 16,
+  },
+  
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBlur: {
+    margin: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    maxWidth: 400,
+    width: '90%',
+  },
+  modalContainer: {
+    backgroundColor: 'rgba(26, 26, 46, 0.95)',
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(187, 134, 252, 0.3)',
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 12,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#dcdcdc',
+    textAlign: 'center',
+  },
+  modalContent: {
+    gap: 20,
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: '#dcdcdc',
+    textAlign: 'center',
+    lineHeight: 20,
+    opacity: 0.9,
+  },
+  strategyPreview: {
+    backgroundColor: 'rgba(187, 134, 252, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(187, 134, 252, 0.2)',
+  },
+  strategyPreviewTitle: {
+    fontSize: 12,
+    color: '#bb86fc',
+    fontWeight: '600',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  strategyName: {
+    fontSize: 16,
+    color: '#dcdcdc',
+    fontWeight: 'bold',
+    marginBottom: 12,
+    textAlign: 'center',
+    backgroundColor: 'rgba(187, 134, 252, 0.2)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  allocationPreview: {
+    gap: 4,
+    marginBottom: 12,
+  },
+  allocationItem: {
+    fontSize: 13,
+    color: '#dcdcdc',
+    opacity: 0.8,
+  },
+  walletPreview: {
+    fontSize: 12,
+    color: '#dcdcdc',
+    opacity: 0.7,
+    fontFamily: 'monospace',
+    textAlign: 'center',
+  },
+  confirmationInputSection: {
+    gap: 12,
+  },
+  confirmationLabel: {
+    fontSize: 14,
+    color: '#dcdcdc',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  confirmationInput: {
+    backgroundColor: 'rgba(220, 220, 220, 0.1)',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    color: '#dcdcdc',
+    borderWidth: 1,
+    borderColor: 'rgba(187, 134, 252, 0.3)',
+    textAlign: 'center',
+  },
+  confirmationInputError: {
+    borderColor: '#FF5722',
+    backgroundColor: 'rgba(255, 87, 34, 0.1)',
+  },
+  confirmationErrorText: {
+    fontSize: 12,
+    color: '#FF5722',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  modalWarning: {
+    fontSize: 12,
+    color: '#FF9800',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 152, 0, 0.3)',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+  },
+  modalCancelButton: {
+    flex: 1,
+    backgroundColor: 'rgba(108, 117, 125, 0.2)',
+    paddingVertical: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(108, 117, 125, 0.3)',
+  },
+  modalCancelText: {
+    color: '#6C757D',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  modalConfirmButton: {
+    flex: 1,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  modalConfirmButtonDisabled: {
+    opacity: 0.5,
+  },
+  modalConfirmGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    gap: 8,
+  },
+  modalConfirmText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  modalConfirmTextDisabled: {
+    color: '#BDBDBD',
   },
 });
