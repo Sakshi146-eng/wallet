@@ -14,10 +14,21 @@ async def get_wallet_info(address: str):
         #Fetch live ETH + ERC-20 token balances
             
         balances = {
-            "ETH": await get_eth_balance(address,session),
-            "USDC": await get_erc20_balance(address, contract_address="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", decimals=6,session=session),
-            "LINK": await get_erc20_balance(address, contract_address="0x514910771af9ca656af840dff83e8264ecf986ca", decimals=18,session=session),
-        }
+    "ETH": await get_eth_balance(address, session),
+    "USDC": await get_erc20_balance(
+        address,
+        contract_address="0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238", # Sepolia USDC
+        decimals=6,
+        session=session
+    ),
+    "LINK": await get_erc20_balance(
+        address,
+        contract_address="0x779877A7B0D9E8603169DdbD7836e478b4624789", # Sepolia LINK
+        decimals=18,
+        session=session
+    ),
+}
+
 
         # now we will get live usd price for the coin
         prices = await fetch_token_prices(list(balances.keys()))
@@ -31,6 +42,6 @@ async def get_wallet_info(address: str):
             "address": address,
             "balances": balances,
             "usd_value": usd_value,
-            "network": "Ethereum Mainnet"
+            "network": "Sepolia testnet"
         }
 

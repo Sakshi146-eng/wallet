@@ -1,19 +1,27 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.config import get_env
 
+
 MONGO_URI = get_env("MONGODB_URI")
 MONGO_DB_NAME = "wallet_ai_db"
+
 
 client = AsyncIOMotorClient(MONGO_URI)
 db = client[MONGO_DB_NAME]
 
+
 # Existing collections
 agent_logs = db["agent_logs"]
+
 
 # New collections for strategy execution
 strategies = db["strategies"]
 executions = db["executions"]
 wallets = db["wallets"]
+
+# Authentication collection
+users = db["users"]
+
 
 # Collection schemas and indexes
 async def setup_database():
@@ -44,6 +52,16 @@ async def setup_database():
         # Wallets indexes
         await wallets.create_index("wallet_address", unique=True)
         await wallets.create_index("last_updated")
+        
+        # Users indexes - Fixed to avoid duplicate index creation
+        try:
+            await users.create_index("email", unique=True)
+        except Exception as e:
+            # Index might already exist, that's okay
+            print(f"[INFO] Email index might already exist: {str(e)}")
+            
+        await users.create_index("created_at")
+        await users.create_index("wallet_addresses")
         
         print("[INFO] Database indexes created successfully")
         
@@ -273,4 +291,227 @@ async def cleanup_old_logs(days_to_keep: int = 30) -> int:
         return total_deleted
     except Exception as e:
         print(f"[ERROR] Failed to cleanup old logs: {str(e)}")
+        return 0
+
+
+# USER AUTHENTICATION FUNCTIONS
+async def save_user(user_data: dict) -> str:
+    """
+    Save a new user to the database.
+    
+    Args:
+        user_data: User information including email, hashed_password, wallet_addresses, etc.
+    
+    Returns:
+        User ID
+    """
+    try:
+        result = await users.insert_one(user_data)
+        return str(result.inserted_id)
+    except Exception as e:
+        print(f"[ERROR] Failed to save user: {str(e)}")
+        raise
+
+
+async def get_user_by_email(email: str) -> dict:
+    """
+    Get user by email address.
+    
+    Args:
+        email: User email address
+    
+    Returns:
+        User document or None if not found
+    """
+    try:
+        user = await users.find_one({"email": email})
+        if user:
+            user["_id"] = str(user["_id"])
+        return user
+    except Exception as e:
+        print(f"[ERROR] Failed to get user by email: {str(e)}")
+        return None
+
+
+async def get_user_by_id(user_id: str) -> dict:
+    """
+    Get user by user ID.
+    
+    Args:
+        user_id: User ID
+    
+    Returns:
+        User document or None if not found
+    """
+    try:
+        from bson import ObjectId
+        user = await users.find_one({"_id": ObjectId(user_id)})
+        if user:
+            user["_id"] = str(user["_id"])
+        return user
+    except Exception as e:
+        print(f"[ERROR] Failed to get user by ID: {str(e)}")
+        return None
+
+
+async def update_user_wallet_addresses(email: str, wallet_address: str) -> bool:
+    """
+    Add a wallet address to user's wallet_addresses list.
+    
+    Args:
+        email: User email
+        wallet_address: Wallet address to add
+    
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        from datetime import datetime, timezone
+        
+        result = await users.update_one(
+            {"email": email},
+            {
+                "$addToSet": {"wallet_addresses": wallet_address},
+                "$set": {"updated_at": datetime.now(timezone.utc)}
+            }
+        )
+        return result.modified_count > 0
+    except Exception as e:
+        print(f"[ERROR] Failed to update user wallet addresses: {str(e)}")
+        return False
+
+
+async def update_user_profile(email: str, update_data: dict) -> bool:
+    """
+    Update user profile information.
+    
+    Args:
+        email: User email
+        update_data: Dictionary of fields to update
+    
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        from datetime import datetime, timezone
+        
+        update_data["updated_at"] = datetime.now(timezone.utc)
+        
+        result = await users.update_one(
+            {"email": email},
+            {"$set": update_data}
+        )
+        return result.modified_count > 0
+    except Exception as e:
+        print(f"[ERROR] Failed to update user profile: {str(e)}")
+        return False
+
+
+async def delete_user(email: str) -> bool:
+    """
+    Delete a user from the database.
+    
+    Args:
+        email: User email
+    
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        result = await users.delete_one({"email": email})
+        return result.deleted_count > 0
+    except Exception as e:
+        print(f"[ERROR] Failed to delete user: {str(e)}")
+        return False
+
+
+async def get_users_by_wallet(wallet_address: str) -> list:
+    """
+    Get all users associated with a wallet address.
+    
+    Args:
+        wallet_address: Wallet address to search for
+    
+    Returns:
+        List of user documents
+    """
+    try:
+        cursor = users.find({"wallet_addresses": wallet_address})
+        
+        user_list = []
+        async for doc in cursor:
+            doc["_id"] = str(doc["_id"])
+            # Remove sensitive information
+            doc.pop("hashed_password", None)
+            user_list.append(doc)
+        
+        return user_list
+    except Exception as e:
+        print(f"[ERROR] Failed to get users by wallet: {str(e)}")
+        return []
+
+
+async def get_user_stats() -> dict:
+    """
+    Get user statistics.
+    
+    Returns:
+        Dictionary with user statistics
+    """
+    try:
+        total_users = await users.count_documents({})
+        
+        # Users with wallet addresses
+        users_with_wallets = await users.count_documents(
+            {"wallet_addresses": {"$exists": True, "$ne": []}}
+        )
+        
+        # Recent signups (last 7 days)
+        from datetime import datetime, timezone, timedelta
+        week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+        recent_signups = await users.count_documents(
+            {"created_at": {"$gte": week_ago}}
+        )
+        
+        return {
+            "total_users": total_users,
+            "users_with_wallets": users_with_wallets,
+            "recent_signups": recent_signups
+        }
+    except Exception as e:
+        print(f"[ERROR] Failed to get user stats: {str(e)}")
+        return {}
+
+
+async def cleanup_inactive_users(days_inactive: int = 90) -> int:
+    """
+    Clean up inactive users (optional - be careful with this).
+    
+    Args:
+        days_inactive: Number of days without login to consider inactive
+    
+    Returns:
+        Number of users cleaned up
+    """
+    try:
+        from datetime import datetime, timezone, timedelta
+        
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=days_inactive)
+        
+        # Only delete users who haven't logged in recently AND have no wallet addresses
+        result = await users.delete_many({
+            "last_login": {"$lt": cutoff_date},
+            "$or": [
+                {"wallet_addresses": {"$exists": False}},
+                {"wallet_addresses": {"$size": 0}}
+            ]
+        })
+        
+        deleted_count = result.deleted_count
+        if deleted_count > 0:
+            print(f"[INFO] Cleaned up {deleted_count} inactive users")
+        
+        return deleted_count
+    except Exception as e:
+        print(f"[ERROR] Failed to cleanup inactive users: {str(e)}")
         return 0

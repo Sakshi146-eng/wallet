@@ -5,6 +5,8 @@ command
 __pycache__/
 *.pyc
 
+h.html
+
 # Node.js / React Native
 node_modules/
 
@@ -23,6 +25,9 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+protection.txt
+
+todo
 # Metro
 .metro-health-check*
 

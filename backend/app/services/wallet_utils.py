@@ -1,24 +1,21 @@
-
+# app/services/wallet_utils.py
 from app.config import get_env
 import aiohttp
 
+# Sepolia ERC-20 token contracts
 ERC20_TOKENS = {
     "USDC": {
-        "contract": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "contract": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",  # Sepolia USDC
         "decimals": 6
     },
-    "DAI": {
-        "contract": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-        "decimals": 18
-    },
     "LINK": {
-        "contract": "0x514910771AF9Ca656af840dff83E8264EcF986CA",
+        "contract": "0x779877A7B0D9E8603169DdbD7836e478b4624789",  # Sepolia LINK
         "decimals": 18
     }
 }
 
 ETHERSCAN_API_KEY = get_env("ETHERSCAN_API_KEY")
-ETHERSCAN_BASE_URL = "https://api.etherscan.io/api"
+ETHERSCAN_BASE_URL = "https://api-sepolia.etherscan.io/api" 
 
 async def get_eth_balance(address: str, session) -> float:
     url = f"{ETHERSCAN_BASE_URL}?module=account&action=balance&address={address}&tag=latest&apikey={ETHERSCAN_API_KEY}"
@@ -31,8 +28,7 @@ async def get_eth_balance(address: str, session) -> float:
         else:
             raise Exception(f"Etherscan error: {data.get('message')}")
 
-
-async def get_erc20_balance(address: str, contract_address: str, decimals: int, session:aiohttp.ClientSession) -> float:
+async def get_erc20_balance(address: str, contract_address: str, decimals: int, session: aiohttp.ClientSession) -> float:
     url = f"{ETHERSCAN_BASE_URL}?module=account&action=tokenbalance&contractaddress={contract_address}&address={address}&tag=latest&apikey={ETHERSCAN_API_KEY}"
     
     async with session.get(url) as response:
@@ -50,6 +46,3 @@ async def get_all_token_balances(address: str, session) -> dict:
         if amount > 0:
             balances[token] = amount
     return balances
-
-
-
