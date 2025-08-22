@@ -17,7 +17,7 @@ async def get_wallet_info(address: str):
     "ETH": await get_eth_balance(address, session),
     "USDC": await get_erc20_balance(
         address,
-        contract_address="0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238", # Sepolia USDC
+        contract_address="0x14A3Fb98C14759169f998155ba4c31d1393D6D7c", # own
         decimals=6,
         session=session
     ),

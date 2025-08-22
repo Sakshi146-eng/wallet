@@ -5,7 +5,7 @@ import aiohttp
 # Sepolia ERC-20 token contracts
 ERC20_TOKENS = {
     "USDC": {
-        "contract": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",  # Sepolia USDC
+        "contract": "0x14A3Fb98C14759169f998155ba4c31d1393D6D7c",  # my created/mined test usdc
         "decimals": 6
     },
     "LINK": {
@@ -15,7 +15,8 @@ ERC20_TOKENS = {
 }
 
 ETHERSCAN_API_KEY = get_env("ETHERSCAN_API_KEY")
-ETHERSCAN_BASE_URL = "https://api-sepolia.etherscan.io/api" 
+ETHERSCAN_BASE_URL = "https://api-sepolia.etherscan.io/api"
+
 
 async def get_eth_balance(address: str, session) -> float:
     url = f"{ETHERSCAN_BASE_URL}?module=account&action=balance&address={address}&tag=latest&apikey={ETHERSCAN_API_KEY}"
