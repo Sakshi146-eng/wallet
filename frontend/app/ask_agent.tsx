@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import { API_URL } from '../Api.jsx';
-import NetworkDebug from './NetworkDebug';
 import {
   View,
   Text,
@@ -41,6 +40,7 @@ export default function AskAgent() {
   const [rebalanceMode, setRebalanceMode] = useState(false);
   const [showStrategiesButton, setShowStrategiesButton] = useState(false);
   const [strategiesData, setStrategiesData] = useState(null);
+  const [splineLoaded, setSplineLoaded] = useState(false);
   
   // Animation values with platform-specific native driver
   const useNativeDriver = Platform.OS !== 'web';
@@ -313,8 +313,8 @@ export default function AskAgent() {
     setStrategiesData(null);
   };
 
-  // Enhanced Platform-specific Spline component
-  const SplineComponent =React.useMemo( () => {
+  // Enhanced Platform-specific Spline component with proper mobile handling
+  const SplineComponent = React.useMemo(() => {
     if (Platform.OS === 'web') {
       return (
         <View style={[
@@ -331,37 +331,113 @@ export default function AskAgent() {
               borderRadius: '12px',
             }}
             title="3D Robot Agent"
+            onLoad={() => setSplineLoaded(true)}
           />
         </View>
       );
     } else {
+      // Improved HTML for mobile WebView with better responsive handling
       const splineHTML = `
         <!DOCTYPE html>
         <html>
         <head>
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+          <meta charset="utf-8">
           <style>
-            body {
+            * {
               margin: 0;
               padding: 0;
-              background: transparent;
+              box-sizing: border-box;
+            }
+            html, body {
+              width: 100%;
+              height: 100%;
               overflow: hidden;
+              background: transparent;
+              touch-action: manipulation;
+            }
+            #spline-container {
+              position: relative;
+              width: 100%;
+              height: 100%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
             }
             iframe {
               width: 100%;
               height: 100%;
               border: none;
               background: transparent;
+              border-radius: 12px;
+              min-height: 300px;
+            }
+            .loading-overlay {
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              color: #bb86fc;
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+              text-align: center;
+              z-index: 1;
+            }
+            .loading-spinner {
+              width: 40px;
+              height: 40px;
+              border: 4px solid rgba(187, 134, 252, 0.3);
+              border-top: 4px solid #bb86fc;
+              border-radius: 50%;
+              animation: spin 1s linear infinite;
+              margin: 0 auto 10px;
+            }
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
             }
           </style>
         </head>
         <body>
-          <iframe 
-            src='https://my.spline.design/robotfollowcursorforlandingpage-Fr4BBvxn4emdlG8vlg77pgSs/' 
-            frameborder='0' 
-            width='100%' 
-            height='100%'>
-          </iframe>
+          <div id="spline-container">
+            <div class="loading-overlay" id="loading">
+              <div class="loading-spinner"></div>
+              <div>Loading 3D Agent...</div>
+            </div>
+            <iframe 
+              id="spline-iframe"
+              src="https://my.spline.design/robotfollowcursorforlandingpage-Fr4BBvxn4emdlG8vlg77pgSs/" 
+              frameborder="0" 
+              width="100%" 
+              height="100%"
+              allowfullscreen
+              onload="document.getElementById('loading').style.display='none';">
+            </iframe>
+          </div>
+          
+          <script>
+            // Handle iframe load
+            const iframe = document.getElementById('spline-iframe');
+            const loading = document.getElementById('loading');
+            
+            iframe.onload = function() {
+              setTimeout(() => {
+                loading.style.opacity = '0';
+                setTimeout(() => {
+                  loading.style.display = 'none';
+                }, 300);
+              }, 1000);
+            };
+            
+            // Prevent zoom on double tap
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function (event) {
+              const now = (new Date()).getTime();
+              if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+              }
+              lastTouchEnd = now;
+            }, false);
+          </script>
         </body>
         </html>
       `;
@@ -375,11 +451,23 @@ export default function AskAgent() {
             source={{ html: splineHTML }}
             style={styles.webView}
             scrollEnabled={false}
+            bounces={false}
             showsHorizontalScrollIndicator={false}
             showsVerticalScrollIndicator={false}
             javaScriptEnabled={true}
             domStorageEnabled={true}
-            startInLoadingState={true}
+            startInLoadingState={false}
+            allowsInlineMediaPlayback={true}
+            mediaPlaybackRequiresUserAction={false}
+            mixedContentMode="compatibility"
+            originWhitelist={['*']}
+            onLoadStart={() => setSplineLoaded(false)}
+            onLoadEnd={() => setSplineLoaded(true)}
+            onError={(error) => {
+              console.log('WebView Error:', error);
+              setSplineLoaded(true);
+            }}
+            androidLayerType="hardware"
             renderLoading={() => (
               <View style={styles.webViewLoading}>
                 <ActivityIndicator color="#bb86fc" size="large" />
@@ -387,10 +475,18 @@ export default function AskAgent() {
               </View>
             )}
           />
+          
+          {/* Custom loading overlay for better control */}
+          {!splineLoaded && (
+            <View style={styles.customLoadingOverlay}>
+              <ActivityIndicator color="#bb86fc" size="large" />
+              <Text style={styles.customLoadingText}>Initializing AI Agent...</Text>
+            </View>
+          )}
         </View>
       );
     }
-  },[]);
+  }, [splineLoaded]);
 
   return (
     <View style={styles.container}>
@@ -407,8 +503,6 @@ export default function AskAgent() {
             </Text>
           </View>
 
-
-          
           {/* Quick Prompts */}
           <View style={styles.quickPromptsContainer}>
             <Text style={styles.quickPromptsTitle}>Quick Questions:</Text>
@@ -746,7 +840,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   
-  // Spline Styles
+  // Enhanced Spline Styles for Mobile
   splineContainer: {
     marginBottom: 20,
     borderRadius: 20,
@@ -762,9 +856,10 @@ const styles = StyleSheet.create({
     maxWidth: 600,
   },
   splineContainerMobile: {
-    height: 380,
+    height: 320, // Reduced height for better mobile fit
     width: '100%',
     maxWidth: '100%',
+    marginBottom: 15,
   },
   splineBlur: {
     flex: 1,
@@ -817,19 +912,23 @@ const styles = StyleSheet.create({
   },
   webSplineContainerMobile: {
     aspectRatio: 4/3,
+    minHeight: 250,
   },
   webViewContainer: {
     flex: 1,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    position: 'relative',
   },
   webViewContainerMobile: {
-    minHeight: 300,
+    minHeight: 280,
+    maxHeight: 320,
   },
   webView: {
     flex: 1,
     backgroundColor: 'transparent',
+    borderRadius: 12,
   },
   webViewLoading: {
     position: 'absolute',
@@ -840,11 +939,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 12,
   },
   loadingText: {
     color: '#bb86fc',
     marginTop: 10,
     fontSize: 14,
+  },
+  customLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(26, 26, 46, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+    zIndex: 20,
+  },
+  customLoadingText: {
+    color: '#bb86fc',
+    marginTop: 15,
+    fontSize: 14,
+    fontWeight: '600',
   },
   
   // Error and Response Styles
