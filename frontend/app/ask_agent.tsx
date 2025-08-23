@@ -1212,7 +1212,7 @@ const styles = StyleSheet.create({
   },
   strategiesButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 16.2,
     fontWeight: 'bold',
   },
 });
