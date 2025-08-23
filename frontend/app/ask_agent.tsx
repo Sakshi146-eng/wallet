@@ -1,4 +1,6 @@
 import React, { useState, useRef } from 'react';
+import { API_URL } from '../Api.jsx';
+import NetworkDebug from './NetworkDebug';
 import {
   View,
   Text,
@@ -202,7 +204,7 @@ export default function AskAgent() {
 
       // Choose endpoint based on rebalance mode
       const endpoint = rebalanceMode ? '/agent/rebalance' : '/agent/ask';
-      const result = await fetch(`http://localhost:8000${endpoint}`, {
+      const result = await fetch(`${API_URL}${endpoint}`, { 
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -405,6 +407,8 @@ export default function AskAgent() {
             </Text>
           </View>
 
+
+          
           {/* Quick Prompts */}
           <View style={styles.quickPromptsContainer}>
             <Text style={styles.quickPromptsTitle}>Quick Questions:</Text>

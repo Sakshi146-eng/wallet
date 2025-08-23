@@ -37,6 +37,8 @@ async def get_wallet_info(address: str):
             symbol: round(balances[symbol] * prices[symbol], 2)
             for symbol in balances
         }
+        
+        print(f"this is the balances:{balances}")
 
         return {
             "address": address,

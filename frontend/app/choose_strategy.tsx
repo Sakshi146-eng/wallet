@@ -589,6 +589,7 @@
 // });
 // File: app/choose_strategy.tsx
 import React from 'react';
+import { API_URL } from '../Api';
 import { 
   View, 
   Text, 
@@ -664,7 +665,7 @@ export default function ChooseStrategyScreen() {
       console.log('Choose Strategy Request Body:', JSON.stringify(requestBody, null, 2));
 
       // Get API URL with fallback
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || API_URL;
       console.log('Using API URL:', apiUrl);
 
       const result = await fetch(`${apiUrl}/agent/choose`, {
@@ -828,7 +829,7 @@ export default function ChooseStrategyScreen() {
               Strategies Count: {parsedStrategies.length}
             </Text>
             <Text style={styles.debugText}>
-              API URL: {process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000 (fallback)'}
+              API URL: {process.env.EXPO_PUBLIC_API_URL || '{API_URL} (fallback)'}
             </Text>
           </BlurView>
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import {API_URL} from '../Api.jsx';
 import { 
   View, 
   Text, 
@@ -52,7 +53,7 @@ export default function ChartScreen() {
     });
     
     // Get API URL with fallback
-    const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+    const apiUrl = process.env.EXPO_PUBLIC_API_URL || API_URL;
     console.log('API URL:', apiUrl);
     
     console.log('strategy_id type:', typeof strategy_id, 'value:', strategy_id);
@@ -216,7 +217,7 @@ export default function ChartScreen() {
       console.log('📤 Preparing API request...');
       
       // Get API URL with fallback
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || API_URL;
       console.log('API URL:', apiUrl);
       console.log('Request endpoint:', `${apiUrl}/agent/execute`);
       console.log('Request data:', JSON.stringify(requestData, null, 2));
@@ -336,7 +337,7 @@ export default function ChartScreen() {
             onPress: () => {
               Alert.alert('Debug Info', JSON.stringify({
                 error: error instanceof Error ? error.message : String(error),
-                apiUrl: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000',
+                apiUrl: process.env.EXPO_PUBLIC_API_URL || API_URL,
                 requestData: {
                   wallet_address: wallet_address?.toString(),
                   strategy_id: strategy_id?.toString(),
@@ -397,7 +398,7 @@ export default function ChartScreen() {
             <View style={styles.debugContent}>
               <Text style={styles.debugText}>Strategy ID: {strategy_id || 'MISSING'}</Text>
               <Text style={styles.debugText}>Wallet: {wallet_address?.toString().slice(0, 20)}...</Text>
-              <Text style={styles.debugText}>API URL: {process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000 (fallback)'}</Text>
+              <Text style={styles.debugText}>API URL: {process.env.EXPO_PUBLIC_API_URL || '{API_URL} (fallback)'}</Text>
               <Text style={styles.debugText}>
                 Allocation: {JSON.stringify(parsedStrategy)}
               </Text>
@@ -408,7 +409,7 @@ export default function ChartScreen() {
                     strategy_id,
                     wallet_address,
                     parsedStrategy,
-                    api_url: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000',
+                    api_url: process.env.EXPO_PUBLIC_API_URL || API_URL,
                     all_params: {
                       applied_strategy,
                       expected_return,

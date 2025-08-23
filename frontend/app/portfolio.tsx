@@ -3,6 +3,7 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import PortfolioCard from '@/components/PortfolioCard';
 import { useLocalSearchParams } from 'expo-router';
+import {API_URL} from '../Api.jsx';
 
 export default function portfolio() {
   const { address } = useLocalSearchParams();

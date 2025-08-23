@@ -15,6 +15,7 @@ import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
+import {API_URL} from '../Api.jsx';
 
 const { width, height } = Dimensions.get('window');
 
