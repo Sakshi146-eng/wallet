@@ -1,11 +1,11 @@
 import asyncio
-from typing import Dict, Any
-from web3 import Web3
-from eth_account import Account
 import json
 import time
+from typing import Any, Dict
 
 from app.config import get_env
+from eth_account import Account
+from web3 import Web3
 
 # Configuration
 NETWORK = get_env("NETWORK", "sepolia")
@@ -15,7 +15,7 @@ PRIVATE_KEY = get_env("PRIVATE_KEY")
 
 # Contract addresses on Sepolia testnet
 SEPOLIA_CONTRACTS = {
-    "USDC": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",  # Sepolia USDC
+    "USDC": "0x14A3Fb98C14759169f998155ba4c31d1393D6D7c",  # Sepolia USDC own
     "LINK": "0x779877A7B0D9E8603169DdbD7836e478b4624789",  # Sepolia LINK
     "WETH": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",  # Sepolia WETH
 }

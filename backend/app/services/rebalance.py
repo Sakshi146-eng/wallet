@@ -68,7 +68,7 @@ async def generate_rebalance(data: AgentQueryRequest):
         print("[INFO] Rebalance request triggered.")
         async with aiohttp.ClientSession() as session:
             eth = await get_eth_balance(w_address, session)
-            usdc = await get_erc20_balance(w_address, "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", 6, session)
+            usdc = await get_erc20_balance(w_address, " b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", 6, session) #OWN
             link = await get_erc20_balance(w_address, "0x514910771af9ca656af840dff83e8264ecf986ca", 18, session)
 
         balances = {"ETH": eth, "USDC": usdc, "LINK": link}

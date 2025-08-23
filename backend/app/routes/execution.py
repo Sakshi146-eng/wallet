@@ -55,7 +55,7 @@ async def execute_strategy(data: ExecutionRequest):
             eth_balance = await get_eth_balance(data.wallet_address, session)
             usdc_balance = await get_erc20_balance(
                 data.wallet_address, 
-                "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", 
+                "0x14A3Fb98C14759169f998155ba4c31d1393D6D7c", 
                 6, 
                 session
             )
@@ -143,7 +143,7 @@ async def execute_strategy(data: ExecutionRequest):
         await executions.insert_one(execution_record)
         
         # Create Etherscan URL
-        etherscan_url = f"https://sepolia.etherscan.io/tx/{tx_result['tx_hash']}"
+        etherscan_url = f"https://sepolia.etherscan.io/tx/0x{tx_result['tx_hash']}"
 
         print(f"[SUCCESS] Strategy executed. TX Hash: {tx_result['tx_hash']}")
 

@@ -44,7 +44,7 @@ async def run_agent(user_prompt: str, wallet_address: str) -> str:
 
                 usdc = await get_erc20_balance(
                     address=wallet_address,
-                    contract_address="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", 
+                    contract_address="0x14A3Fb98C14759169f998155ba4c31d1393D6D7c", #OWN
                     decimals=6,
                     session=session
                 )
