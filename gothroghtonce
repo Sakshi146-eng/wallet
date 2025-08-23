@@ -1,0 +1,97 @@
+Great Q 👍 — choosing **FastAPI** wasn’t random. Let’s break down **why FastAPI is a very good fit** for your wallet agent, and where other frameworks might (or might not) make sense.
+
+---
+
+## 🔹 Why **FastAPI** for this use case
+
+1. **Asynchronous (async/await) support**
+
+   * Your app constantly hits APIs: **Etherscan**, **1inch/Uniswap routers**, **LLM APIs**, **wallet RPCs**.
+   * FastAPI is async-native → perfect for concurrent network I/O without blocking (balances, quotes, tx receipts).
+   * This means **scales better** when agent mode runs 24/7 monitoring many wallets.
+
+2. **Automatic validation & docs**
+
+   * With **Pydantic models**, you define schemas for requests/responses (like balances, strategies).
+   * FastAPI automatically gives you **validation, OpenAPI docs, and schema enforcement**.
+   * Important for **safety** (no malformed JSON from LLM goes unchecked).
+
+3. **Speed**
+
+   * Based on **Starlette + Uvicorn** → very fast at handling requests.
+   * This matters because your agent may do frequent status checks & user queries.
+
+4. **Integration friendly**
+
+   * Plays well with **aiohttp**, **web3.py**, **databases like MongoDB**, and external services.
+   * Minimal boilerplate compared to Django/Flask.
+
+5. **Background tasks**
+
+   * Agent mode requires **schedulers** (poll balances, rebalance triggers).
+   * FastAPI has built-in background tasks & integrates cleanly with APScheduler / Celery.
+
+6. **Modern developer experience**
+
+   * Type hints everywhere → safer code.
+   * Built-in Swagger UI + ReDoc → frontend & team can explore endpoints easily.
+
+---
+
+## 🔹 Why not Flask?
+
+* Flask is simple, but **not async by default**.
+* You’d need extra work to handle multiple concurrent RPC/API calls efficiently.
+* No built-in request/response validation (need Marshmallow or manual checks).
+* For **agent safety** (validating LLM JSON before execution), FastAPI is far superior.
+
+---
+
+## 🔹 Why not Django?
+
+* Django is heavy (ORM, templating, admin) → overkill for a microservice-like agent backend.
+* Async support is partial compared to FastAPI.
+* Good if you need **full web app + auth + dashboards**, but here you already plan a React frontend.
+
+---
+
+## 🔹 Why not Node.js (Express / NestJS)?
+
+* Node is great for async workloads too.
+* But since **web3.py** + **AI/ML ecosystem** is strongest in Python, keeping everything Python-side avoids bridging issues.
+* LLM integrations (LangChain, HuggingFace, OpenAI/Groq clients) are **more mature in Python**.
+
+---
+
+## 🔹 Why not Go / Rust microservice?
+
+* They give top performance & safety, but:
+
+  * Ecosystem for **Ethereum RPCs + AI agents** is weaker.
+  * Development time is higher.
+  * Not worth the tradeoff unless you’re running **production infra at exchange-level scale**.
+
+---
+
+## ✅ Conclusion
+
+FastAPI hits the **sweet spot** for your agent:
+
+* Async-native for APIs & RPCs
+* Schema validation for safety
+* Quick iteration + AI/web3 ecosystem in Python
+* Modern, lightweight, scalable
+
+Other stacks might make sense if you:
+
+* Need a big monolith with ORM/admin (Django)
+* Already have heavy JS infra (NestJS/Express)
+* Are optimizing for 10M+ requests/sec (Go/Rust)
+
+---
+
+👉 So the choice isn’t just hype — **FastAPI balances speed, safety, and dev productivity** for exactly the kind of AI + web3 backend you’re building.
+
+---
+
+Would you like me to also map **how this agent backend in FastAPI could later be split into microservices** (monitor service, execution service, LLM service) — or do you want to keep it monolithic for now?

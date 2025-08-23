@@ -31,3 +31,7 @@ passlib[bcrypt]==1.7.4
 python-decouple==3.8
 email-validator==2.1.0
 
+apscheduler 
+motor 
+aiohttp
+
