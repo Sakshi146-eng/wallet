@@ -1216,3 +1216,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
+
+//ready spline container
