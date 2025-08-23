@@ -313,7 +313,7 @@ export default function AskAgent() {
     setStrategiesData(null);
   };
 
-  // Enhanced Platform-specific Spline component with proper mobile handling
+  // Enhanced Platform-specific Spline component with PROPER mobile handling
   const SplineComponent = React.useMemo(() => {
     if (Platform.OS === 'web') {
       return (
@@ -336,7 +336,7 @@ export default function AskAgent() {
         </View>
       );
     } else {
-      // Improved HTML for mobile WebView with better responsive handling
+      // OPTIMIZED HTML for mobile WebView with BETTER positioning and scaling
       const splineHTML = `
         <!DOCTYPE html>
         <html>
@@ -355,6 +355,7 @@ export default function AskAgent() {
               overflow: hidden;
               background: transparent;
               touch-action: manipulation;
+              -webkit-overflow-scrolling: touch;
             }
             #spline-container {
               position: relative;
@@ -363,15 +364,75 @@ export default function AskAgent() {
               display: flex;
               align-items: center;
               justify-content: center;
+              background: transparent;
+              padding: 5px;
             }
-            iframe {
+            
+            #iframe-wrapper {
+              position: relative;
               width: 100%;
               height: 100%;
+              overflow: hidden;
+              border-radius: 12px;
+              background: transparent;
+            }
+            
+            iframe {
+              position: absolute;
+              top: 0px; /* Reduced offset for better centering */
+              left: 0px;
+              width: 100%; /* Reduced from 120% for better fit */
+              height: 100%; /* Increased height to crop bottom watermark */
               border: none;
               background: transparent;
-              border-radius: 12px;
-              min-height: 300px;
+              transform-origin: center center;
+              pointer-events: auto;
             }
+            
+            /* Mobile-specific adjustments */
+            @media (max-width: 480px) {
+              iframe {
+                top: -5px; /* Crop more from top */
+                left: -5px;
+                width: 100%;
+                height: 105%; /* Crop more from bottom */
+                transform: none);
+              }
+              #spline-container {
+                padding: 5px;
+              }
+            }
+            
+            /* Very small screens */
+            @media (max-width: 360px) {
+              iframe {
+                top: -20px;
+                left: -5px;
+                width: 110%;
+                height: 135%;
+                transform: scale(0.85);
+              }
+            }
+            
+            /* Bottom mask to hide watermark completely */
+            #bottom-mask {
+              position: absolute;
+              bottom: -2px;
+              left: 0;
+              right: 0;
+              height: 30px;
+              background: linear-gradient(transparent, rgba(26, 26, 46, 1));
+              pointer-events: none;
+              z-index: 15;
+            }
+            
+            /* Hide Spline watermark overlay */
+            .spline-watermark {
+              display: none !important;
+              visibility: hidden !important;
+              opacity: 0 !important;
+            }
+            
             .loading-overlay {
               position: absolute;
               top: 50%;
@@ -380,7 +441,12 @@ export default function AskAgent() {
               color: #bb86fc;
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
               text-align: center;
-              z-index: 1;
+              z-index: 10;
+              background: rgba(26, 26, 46, 0.95);
+              padding: 20px;
+              border-radius: 12px;
+              backdrop-filter: blur(10px);
+              border: 1px solid rgba(187, 134, 252, 0.3);
             }
             .loading-spinner {
               width: 40px;
@@ -395,38 +461,86 @@ export default function AskAgent() {
               0% { transform: rotate(0deg); }
               100% { transform: rotate(360deg); }
             }
+            .loading-text {
+              font-size: 14px;
+              font-weight: 600;
+              margin-top: 10px;
+            }
+            
+            /* Custom overlay to ensure proper display */
+            #custom-overlay {
+              position: absolute;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              height: 40px;
+              background: linear-gradient(transparent, rgba(26, 26, 46, 0.8));
+              pointer-events: none;
+              z-index: 5;
+            }
           </style>
         </head>
         <body>
           <div id="spline-container">
             <div class="loading-overlay" id="loading">
               <div class="loading-spinner"></div>
-              <div>Loading 3D Agent...</div>
+              <div class="loading-text">Loading 3D Agent...</div>
             </div>
-            <iframe 
-              id="spline-iframe"
-              src="https://my.spline.design/robotfollowcursorforlandingpage-Fr4BBvxn4emdlG8vlg77pgSs/" 
-              frameborder="0" 
-              width="100%" 
-              height="100%"
-              allowfullscreen
-              onload="document.getElementById('loading').style.display='none';">
-            </iframe>
+            
+            <div id="iframe-wrapper">
+              <iframe 
+                id="spline-iframe"
+                src="https://my.spline.design/robotfollowcursorforlandingpage-Fr4BBvxn4emdlG8vlg77pgSs/" 
+                frameborder="0"
+                allowfullscreen
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                onload="handleIframeLoad()">
+              </iframe>
+              <div id="bottom-mask"></div>
+            </div>
           </div>
           
           <script>
-            // Handle iframe load
-            const iframe = document.getElementById('spline-iframe');
-            const loading = document.getElementById('loading');
-            
-            iframe.onload = function() {
+            function handleIframeLoad() {
+              const loading = document.getElementById('loading');
+              const iframe = document.getElementById('spline-iframe');
+              
+              // Hide watermark elements after load
               setTimeout(() => {
-                loading.style.opacity = '0';
-                setTimeout(() => {
-                  loading.style.display = 'none';
-                }, 300);
-              }, 1000);
-            };
+                try {
+                  // Try to access and hide watermark (may not work due to CORS)
+                  const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                  const watermarks = iframeDoc.querySelectorAll('[class*="watermark"], [class*="spline"], [id*="watermark"]');
+                  watermarks.forEach(el => {
+                    el.style.display = 'none';
+                    el.style.visibility = 'hidden';
+                    el.style.opacity = '0';
+                  });
+                } catch (e) {
+                  console.log('Cannot access iframe content due to CORS');
+                }
+                
+                if (loading) {
+                  loading.style.opacity = '0';
+                  loading.style.transition = 'opacity 0.3s ease';
+                  setTimeout(() => {
+                    loading.style.display = 'none';
+                  }, 300);
+                }
+              }, 2000); // Longer delay for better loading
+            }
+            
+            // Enhanced iframe load handling
+            const iframe = document.getElementById('spline-iframe');
+            if (iframe) {
+              iframe.onload = handleIframeLoad;
+              iframe.onerror = function() {
+                const loading = document.getElementById('loading');
+                if (loading) {
+                  loading.innerHTML = '<div class="loading-spinner"></div><div class="loading-text">3D Agent Unavailable</div>';
+                }
+              };
+            }
             
             // Prevent zoom on double tap
             let lastTouchEnd = 0;
@@ -437,6 +551,29 @@ export default function AskAgent() {
               }
               lastTouchEnd = now;
             }, false);
+            
+            // Prevent context menu
+            document.addEventListener('contextmenu', function(e) {
+              e.preventDefault();
+            }, false);
+            
+            // Handle orientation changes
+            window.addEventListener('orientationchange', function() {
+              setTimeout(function() {
+                const container = document.getElementById('spline-container');
+                if (container) {
+                  container.style.height = window.innerHeight + 'px';
+                }
+              }, 100);
+            });
+            
+            // Additional mobile optimizations
+            window.addEventListener('resize', function() {
+              const iframe = document.getElementById('spline-iframe');
+              if (iframe && window.innerWidth <= 480) {
+                iframe.style.transform = 'scale(0.85)';
+              }
+            });
           </script>
         </body>
         </html>
@@ -468,6 +605,8 @@ export default function AskAgent() {
               setSplineLoaded(true);
             }}
             androidLayerType="hardware"
+            allowsFullscreenVideo={false}
+            allowsBackForwardNavigationGestures={false}
             renderLoading={() => (
               <View style={styles.webViewLoading}>
                 <ActivityIndicator color="#bb86fc" size="large" />
@@ -594,7 +733,7 @@ export default function AskAgent() {
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* Simplified Spline visibility condition */}
+          {/* FIXED Spline visibility condition with proper mobile sizing */}
           {shouldShowSpline && (
             <Animated.View
               style={[
@@ -610,9 +749,13 @@ export default function AskAgent() {
               <BlurView intensity={10} style={styles.splineBlur}>
                 <View style={[
                   styles.splineWrapper,
-                  isWideScreen && styles.splineWrapperWide
+                  isWideScreen && styles.splineWrapperWide,
+                  isMobile && styles.splineWrapperMobile
                 ]}>
-                  <Text style={styles.splineTitle}>
+                  <Text style={[
+                    styles.splineTitle,
+                    isMobile && styles.splineTitleMobile
+                  ]}>
                     {loading 
                       ? (rebalanceMode ? "AI Agent Analyzing Portfolio..." : "AI Agent Thinking...") 
                       : (rebalanceMode ? "AI Portfolio Advisor Ready" : "AI Agent Ready")
@@ -840,15 +983,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   
-  // Enhanced Spline Styles for Mobile
+  // FIXED Enhanced Spline Styles for OPTIMAL Mobile Display
   splineContainer: {
     marginBottom: 20,
     borderRadius: 20,
     overflow: 'hidden',
     alignSelf: 'center',
-    height: 350,
+    height: 380, // Reduced for better mobile fit
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 450,
   },
   splineContainerWide: {
     height: Math.min(500, height * 0.6),
@@ -856,10 +999,12 @@ const styles = StyleSheet.create({
     maxWidth: 600,
   },
   splineContainerMobile: {
-    height: 320, // Reduced height for better mobile fit
-    width: '100%',
-    maxWidth: '100%',
+    height: 350, // Reduced height to crop watermark better
+    width: '98%', // Slightly smaller width
+    maxWidth: '96%',
+    marginHorizontal: '1%', // Center with margins
     marginBottom: 15,
+    alignSelf: 'center',
   },
   splineBlur: {
     flex: 1,
@@ -876,12 +1021,20 @@ const styles = StyleSheet.create({
   splineWrapperWide: {
     padding: 20,
   },
+  splineWrapperMobile: {
+    padding: 10, // Reduced padding for mobile
+    paddingTop: 12,
+  },
   splineTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#bb86fc',
     textAlign: 'center',
     marginBottom: 10,
+  },
+  splineTitleMobile: {
+    fontSize: 14,
+    marginBottom: 8,
   },
   loadingOverlay: {
     position: 'absolute',
@@ -901,6 +1054,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
   },
+  
+  // Web Spline Styles
   webSplineContainer: {
     flex: 1,
     borderRadius: 12,
@@ -914,16 +1069,21 @@ const styles = StyleSheet.create({
     aspectRatio: 4/3,
     minHeight: 250,
   },
+  
+  // OPTIMIZED WebView Container Styles for Better Mobile Fit
   webViewContainer: {
     flex: 1,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
     position: 'relative',
+    minHeight: 320, // Reduced minimum height
   },
   webViewContainerMobile: {
-    minHeight: 280,
+    minHeight: 300, // Smaller height to crop watermark
     maxHeight: 320,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
   },
   webView: {
     flex: 1,
