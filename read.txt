@@ -1,0 +1,217 @@
+# Agent Mode MVP Implementation Checklist
+
+## ✅ Completed (Generated Files)
+
+### 1. **Enhanced Models** (`app/models/strategy.py`)
+- [x] Strategy model with persistence fields
+- [x] Execution model with status tracking
+- [x] DriftEvent model for monitoring
+- [x] WalletPreferences model for user settings
+- [x] Performance model for learning
+
+### 2. **Persistence Service** (`app/services/persistence.py`)
+- [x] Strategy CRUD operations
+- [x] Execution tracking and updates
+- [x] Drift event management
+- [x] Wallet preferences handling
+- [x] Performance metrics storage
+- [x] Memory context for LLM
+
+### 3. **Monitor Service** (`app/services/monitor.py`)
+- [x] APScheduler integration
+- [x] Portfolio drift detection
+- [x] Large transaction monitoring
+- [x] Price cache management
+- [x] Multi-wallet monitoring
+
+### 4. **Enhanced API Routes**
+- [x] Monitor endpoints (`/monitor/*`)
+- [x] Enhanced agent endpoints (`/agent/*`)
+- [x] Request/Response schemas
+- [x] Background task integration
+
+### 5. **Agent Runner Service** (`app/services/agent_strtegy_runner.py`)
+- [x] Strategy simulation
+- [x] Strategy execution framework
+- [x] Trade planning logic
+- [x] Mock quote integration
+- [x] Execution preview
+
+### 6. **Integration & Startup**
+- [x] Enhanced main.py with lifecycle management
+- [x] Service dependencies
+- [x] Database indexing script
+- [x] Agent configuration
+
+---
+
+## 🔄 Next Steps (Your Implementation Tasks)
+
+### Phase 1: Basic Integration (1-2 days)
+
+#### **Step 1: File Integration**
+```bash
+# Copy the generated files into your project structure
+cp enhanced_models.py app/models/strategy.py
+cp persistence_service.py app/services/persistence.py
+cp monitor_service.py app/services/monitor.py
+# ... etc for all generated files
+```
+
+#### **Step 2: Update Dependencies**
+```bash
+pip install apscheduler==3.10.4 motor==3.3.2 aiohttp==3.9.1
+```
+
+#### **Step 3: Database Setup**
+```bash
+python app/scripts/init_db.py  # Create indexes
+```
+
+#### **Step 4: Basic Testing**
+```python
+# Test persistence service
+from app.services.persistence import get_persistence_service
+from app.db.mongo import get_database
+
+persistence = get_persistence_service(get_database())
+# Test strategy creation, etc.
+```
+
+### Phase 2: Core Functionality (2-3 days)
+
+#### **Step 5: Integrate with Existing Services**
+- [ ] Update your existing `agent.py` route to use new persistence
+- [ ] Modify `rebalance.py` to save strategies automatically
+- [ ] Connect `execution.py` with the new execution tracking
+
+#### **Step 6: Real Quote Integration**
+```python
+# Replace mock quotes in agent_runner.py with real API calls
+async def _get_trade_quote(self, action):
+    # Integrate with 1inch API:
+    # https://api.1inch.dev/swap/v6.0/1/quote
+    pass
+```
+
+#### **Step 7: Web3 Integration**
+```python
+# Update agent_runner.py _execute_trade() method
+# Connect with your existing web3_utils.py
+async def _execute_trade(self, wallet_address, action):
+    # Use your existing Web3Utils for real transactions
+    return await self.web3_utils.execute_swap(...)
+```
+
+### Phase 3: Testing & Validation (2 days)
+
+#### **Step 8: Sepolia Testing**
+- [ ] Test strategy persistence on Sepolia
+- [ ] Test simulation with real quotes
+- [ ] Test execution with test transactions
+- [ ] Verify monitoring detects drift
+
+#### **Step 9: Integration Tests**
+```python
+# Test full flow:
+# 1. Subscribe wallet -> 2. Monitor detects drift -> 3. Generate strategies -> 4. Simulate -> 5. Execute
+```
+
+### Phase 4: Frontend Integration (2-3 days)
+
+#### **Step 10: Agent Dashboard**
+- [ ] Create toggle for auto/manual mode
+- [ ] Display monitoring status
+- [ ] Show recent executions
+- [ ] Preferences management
+
+#### **Step 11: Enhanced Strategy Flow**
+- [ ] Add simulation preview modal
+- [ ] Show execution status in real-time
+- [ ] Add execution cancellation option
+
+---
+
+## 🚨 Critical Configuration Points
+
+### 1. **Environment Variables** (`.env`)
+```bash
+# Agent Mode Settings
+AGENT_MONITOR_INTERVAL_SECONDS=60
+AGENT_DEFAULT_DRIFT_THRESHOLD=0.10
+AGENT_DEFAULT_MAX_TRADE_PCT=20.0
+
+# Safety Settings
+AGENT_MAX_GAS_PRICE_GWEI=50
+AGENT_SIMULATION_TIMEOUT_SECONDS=30
+```
+
+### 2. **Safety Validations**
+```python
+# Add to your validation layer
+def validate_execution_safety(execution, preferences):
+    """Ensure execution meets safety requirements"""
+    if execution.total_cost_usd > preferences.max_trade_pct * 0.01 * portfolio_value:
+        raise ValueError("Trade exceeds maximum percentage")
+    # Add more validations...
+```
+
+### 3. **Monitor Service Startup**
+```python
+# Ensure monitor starts with your app
+# Already configured in the enhanced main.py
+```
+
+---
+
+## 📊 Testing Strategy
+
+### Unit Tests
+- [ ] Test strategy persistence
+- [ ] Test drift detection logic
+- [ ] Test trade planning algorithm
+- [ ] Test quote processing
+
+### Integration Tests  
+- [ ] Test full monitoring cycle
+- [ ] Test strategy generation → execution flow
+- [ ] Test error handling and recovery
+
+### E2E Tests (Sepolia)
+- [ ] Subscribe wallet → detect drift → execute strategy
+- [ ] Test with various portfolio compositions
+- [ ] Test error scenarios (failed transactions, etc.)
+
+---
+
+## 🎯 Quick Win Milestones
+
+### Week 1 Goals:
+- [ ] **Day 1-2**: File integration + basic persistence working
+- [ ] **Day 3-4**: Monitor service detecting drift events
+- [ ] **Day 5**: Strategy generation saving to database
+
+### Week 2 Goals:
+- [ ] **Day 1-2**: Simulation working with real quotes
+- [ ] **Day 3-4**: Full execution pipeline on Sepolia
+- [ ] **Day 5**: Frontend agent dashboard
+
+---
+
+## 🔧 Immediate Action Items
+
+1. **Start with persistence**: Copy the models and persistence service, test basic strategy saving
+2. **Integrate monitoring**: Add monitor service to your existing app, test drift detection
+3. **Connect existing flows**: Make your current rebalance endpoint use the new persistence
+4. **Test incrementally**: Each service independently before connecting them
+
+---
+
+## 📞 Need Help With:
+
+- **Quote API Integration**: 1inch, 0x, or Uniswap v3 quoter
+- **Web3 Transaction Building**: Approval + swap transactions
+- **Error Handling**: Recovery strategies for failed executions
+- **Frontend Components**: Agent dashboard components
+
+Would you like me to generate specific implementations for any of these areas, or shall we start with the file integration and basic persistence testing?

@@ -1,21 +1,19 @@
+import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Animated,
-  TextInput,
-  Dimensions,
-  Platform,
-  Alert,
+    Alert,
+    Animated,
+    Dimensions,
+    Platform,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
-import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
-import { Ionicons } from '@expo/vector-icons';
-import {API_URL} from '../Api.jsx';
 
 const { width, height } = Dimensions.get('window');
 
@@ -475,6 +473,14 @@ export default function HomeScreen() {
                 icon="chatbubble-ellipses-outline"
                 title="Ask AI Agent"
                 description="Get smart insights"
+              />
+
+              <AnimatedButton
+                onPress={() => router.push('/autonomous_agent')}
+                isPrimary={false}
+                icon="settings-outline"
+                title="Autonomous Mode"
+                description="24/7 portfolio monitoring"
               />
             </View>
 

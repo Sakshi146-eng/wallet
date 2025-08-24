@@ -22,6 +22,10 @@ wallets = db["wallets"]
 # Authentication collection
 users = db["users"]
 
+# Autonomous agent collections
+wallet_monitoring_configs = db["wallet_monitoring_configs"]
+autonomous_agent_logs = db["autonomous_agent_logs"]
+
 
 # Collection schemas and indexes
 async def setup_database():
@@ -62,6 +66,16 @@ async def setup_database():
             
         await users.create_index("created_at")
         await users.create_index("wallet_addresses")
+        
+        # Autonomous agent indexes
+        await wallet_monitoring_configs.create_index("wallet_address", unique=True)
+        await wallet_monitoring_configs.create_index("enabled")
+        await wallet_monitoring_configs.create_index("created_at")
+        
+        await autonomous_agent_logs.create_index("wallet_address")
+        await autonomous_agent_logs.create_index("action_type")
+        await autonomous_agent_logs.create_index("timestamp")
+        await autonomous_agent_logs.create_index("action_id", unique=True)
         
         print("[INFO] Database indexes created successfully")
         

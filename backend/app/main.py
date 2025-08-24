@@ -5,7 +5,9 @@ from contextlib import asynccontextmanager
 from app.routes import wallet, agent, tx, auth
 from app.services.rebalance import router as rebalance_router
 from app.routes.execution import router as execution_router
+from app.routes.autonomous_agent import router as autonomous_agent_router
 from app.db.mongo import setup_database
+from app.services.startup import initialize_startup_services, shutdown_startup_services
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -13,9 +15,19 @@ async def lifespan(app: FastAPI):
     print("Starting up...")
     await setup_database()
     print("Database setup complete")
+    
+    # Initialize autonomous agent service
+    print("Initializing autonomous agent service...")
+    await initialize_startup_services()
+    print("Autonomous agent service initialized")
+    
     yield
+    
     # Shutdown
     print("Shutting down...")
+    print("Shutting down autonomous agent service...")
+    await shutdown_startup_services()
+    print("Autonomous agent service shut down")
 
 app = FastAPI(
     title="AI Crypto Wallet Assistant",
@@ -39,6 +51,7 @@ app.include_router(agent.router, prefix="/agent", tags=["AI Agent"])
 app.include_router(tx.router, prefix="/transaction", tags=["Transaction"])
 app.include_router(rebalance_router)
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+app.include_router(autonomous_agent_router, tags=["Autonomous Agent"])
 
 @app.get("/")
 def root():
