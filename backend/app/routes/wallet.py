@@ -46,4 +46,4 @@ async def get_wallet_info(address: str):
             "usd_value": usd_value,
             "network": "Sepolia testnet"
         }
-
+    

@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 
 const getBaseUrl = () => {
   // 🔥 YOUR ACTUAL NGROK URL
-  const ngrokUrl = "https://a7e639eb2fba.ngrok-free.app";
+  const ngrokUrl = "https://9db1e6fb0f83.ngrok-free.app";
   
   // Use ngrok URL for all platforms since local network isn't accessible
   return ngrokUrl;
