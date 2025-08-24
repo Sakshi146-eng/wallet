@@ -115,35 +115,70 @@ export default function AutonomousAgentScreen() {
     loadData();
   }, []);
 
+  // Debug logging for state changes
+  useEffect(() => {
+    console.log('👀 [DEBUG] monitoredWallets state changed:', monitoredWallets);
+    console.log('👀 [DEBUG] Number of monitored wallets:', monitoredWallets.length);
+  }, [monitoredWallets]);
+
+  useEffect(() => {
+    console.log('👀 [DEBUG] serviceStatus state changed:', serviceStatus);
+  }, [serviceStatus]);
+
   const loadData = async () => {
     try {
+      console.log('🔄 [DEBUG] loadData() called - starting to fetch data...');
       setIsLoading(true);
+      
       // Load service status
+      console.log('📊 [DEBUG] Fetching service status...');
       const statusResponse = await fetch(`${API_URL}/autonomous/status/public`);
+      console.log('📊 [DEBUG] Status response status:', statusResponse.status);
       if (statusResponse.ok) {
         const status = await statusResponse.json();
+        console.log('📊 [DEBUG] Status data received:', status);
         setServiceStatus(status);
         setIsMonitoringEnabled(status.service_running);
+        console.log('📊 [DEBUG] Service status state updated');
+      } else {
+        console.error('❌ [DEBUG] Status response failed:', statusResponse.status);
       }
 
       // Load monitored wallets
+      console.log('👛 [DEBUG] Fetching monitored wallets...');
       const walletsResponse = await fetch(`${API_URL}/autonomous/monitor/wallets/public`);
+      console.log('👛 [DEBUG] Wallets response status:', walletsResponse.status);
       if (walletsResponse.ok) {
         const wallets = await walletsResponse.json();
+        console.log('👛 [DEBUG] Wallets data received:', wallets);
+        console.log('👛 [DEBUG] Number of wallets:', wallets.length);
         setMonitoredWallets(wallets);
+        console.log('👛 [DEBUG] Monitored wallets state updated');
+      } else {
+        console.error('❌ [DEBUG] Wallets response failed:', walletsResponse.status);
       }
 
       // Load recent actions
+      console.log('📝 [DEBUG] Fetching recent actions...');
       const actionsResponse = await fetch(`${API_URL}/autonomous/actions`);
+      console.log('📝 [DEBUG] Actions response status:', actionsResponse.status);
       if (actionsResponse.ok) {
         const actions = await actionsResponse.json();
+        console.log('📝 [DEBUG] Actions data received:', actions);
+        console.log('📝 [DEBUG] Number of actions:', actions.length);
         setRecentActions(actions.slice(0, 10)); // Show last 10 actions
+        console.log('📝 [DEBUG] Recent actions state updated');
+      } else {
+        console.error('❌ [DEBUG] Actions response failed:', actionsResponse.status);
       }
+      
+      console.log('✅ [DEBUG] loadData() completed successfully');
     } catch (error) {
-      console.error('Error loading autonomous agent data:', error);
+      console.error('❌ [DEBUG] Error in loadData:', error);
       Alert.alert('Error', 'Failed to load autonomous agent data');
     } finally {
       setIsLoading(false);
+      console.log('🏁 [DEBUG] Loading state set to false');
     }
   };
 
@@ -185,8 +220,9 @@ export default function AutonomousAgentScreen() {
         { text: 'Add', onPress: async (walletAddress) => {
           if (walletAddress && walletAddress.trim()) {
             try {
-              console.log('Adding wallet to monitoring:', walletAddress);
-              console.log('API URL:', `${API_URL}/autonomous/monitor/wallet/public`);
+              console.log('🚀 [DEBUG] ===== WALLET ADDITION STARTED =====');
+              console.log('🚀 [DEBUG] Adding wallet to monitoring:', walletAddress);
+              console.log('🚀 [DEBUG] API URL:', `${API_URL}/autonomous/monitor/wallet/public`);
               
               const requestBody = {
                 wallet_address: walletAddress.trim(),
@@ -200,7 +236,8 @@ export default function AutonomousAgentScreen() {
                 min_portfolio_value_usd: 100.0,
               };
               
-              console.log('Request body:', requestBody);
+              console.log('🚀 [DEBUG] Request body:', requestBody);
+              console.log('🚀 [DEBUG] Current monitored wallets count BEFORE:', monitoredWallets.length);
               
               const response = await fetch(`${API_URL}/autonomous/monitor/wallet/public`, {
                 method: 'POST',
@@ -210,23 +247,42 @@ export default function AutonomousAgentScreen() {
                 body: JSON.stringify(requestBody),
               });
 
-              console.log('Response status:', response.status);
-              console.log('Response ok:', response.ok);
+              console.log('🚀 [DEBUG] Response status:', response.status);
+              console.log('🚀 [DEBUG] Response ok:', response.ok);
               
               if (response.ok) {
                 const responseData = await response.json();
-                console.log('Response data:', responseData);
+                console.log('🚀 [DEBUG] Response data:', responseData);
+                console.log('🚀 [DEBUG] Wallet added successfully!');
+                
                 Alert.alert('Success', 'Wallet added to monitoring');
-                await loadData(); // Refresh data
+                
+                console.log('🔄 [DEBUG] Calling loadData() to refresh...');
+                await loadData();
+                
+                console.log('🚀 [DEBUG] loadData() completed, checking state...');
+                console.log('🚀 [DEBUG] Monitored wallets count AFTER loadData:', monitoredWallets.length);
+                
+                // Force a re-render by updating state
+                console.log('🔄 [DEBUG] Forcing state update...');
+                setMonitoredWallets(prev => {
+                  console.log('🔄 [DEBUG] Previous monitored wallets:', prev);
+                  return [...prev];
+                });
+                
               } else {
                 const errorText = await response.text();
-                console.error('Error response:', errorText);
+                console.error('❌ [DEBUG] Error response:', errorText);
                 Alert.alert('Error', `Failed to add wallet to monitoring: ${response.status} - ${errorText}`);
               }
             } catch (error) {
-              console.error('Error adding wallet:', error);
+              console.error('❌ [DEBUG] Error adding wallet:', error);
               Alert.alert('Error', `Failed to add wallet to monitoring: ${error}`);
+            } finally {
+              console.log('🚀 [DEBUG] ===== WALLET ADDITION COMPLETED =====');
             }
+          } else {
+            console.log('❌ [DEBUG] Invalid wallet address provided');
           }
         }},
       ]
@@ -271,6 +327,14 @@ export default function AutonomousAgentScreen() {
       </View>
     );
   }
+
+  // Debug logging for render
+  console.log('🎨 [DEBUG] RENDERING with state:', {
+    monitoredWalletsCount: monitoredWallets.length,
+    monitoredWallets: monitoredWallets,
+    serviceStatus: serviceStatus,
+    isMonitoringEnabled: isMonitoringEnabled
+  });
 
   return (
     <View style={styles.container}>
